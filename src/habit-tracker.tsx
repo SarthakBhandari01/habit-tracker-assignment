@@ -1341,9 +1341,11 @@ function HabitList({
 function GoalsList({
   goals,
   setGoals,
+  habits,
 }: {
   goals: Goal[];
   setGoals: React.Dispatch<React.SetStateAction<Goal[]>>;
+  habits: Habit[];
 }) {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const getStatusBadge = (status: Goal["status"]) => {
@@ -1356,6 +1358,22 @@ function GoalsList({
         return <Badge className="bg-red-100 text-red-800">Behind</Badge>;
     }
   };
+
+  const calculateProgressFromHabits = (goal: Goal) => {
+    if (!goal.linkedHabitIds || goal.linkedHabitIds.length === 0) {
+      return goal.progress;
+    }
+    const linkedHabits = habits.filter((habit) =>
+      goal.linkedHabitIds?.includes(habit.id)
+    );
+    if (linkedHabits.length === 0) return 0;
+    const totalPercentage = linkedHabits.reduce((sum, habit) => {
+      const percentage = (habit.current / habit.target) * 100;
+      return sum + Math.min(Math.max(percentage, 0), 100);
+    }, 0);
+    return Math.round(totalPercentage / linkedHabits.length);
+  };
+
   function handleDelete(id: string) {
     setGoals(goals.filter((goal) => goal.id !== id));
   }
@@ -1370,52 +1388,55 @@ function GoalsList({
   return (
     <>
       <div className="space-y-4">
-        {goals.map((goal) => (
-          <div
-            key={goal.id}
-            className="flex flex-col space-y-2 rounded-lg border p-4"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                {goal.icon}
-                <h3 className="font-medium">{goal.name}</h3>
-              </div>
-              <Dropdown
-                trigger={
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                }
-              >
-                <div className="py-1">
-                  <DropdownItem onClick={() => setEditingGoal(goal)}>
-                    Edit
-                  </DropdownItem>
-                  <DropdownItem
-                    className="text-red-600"
-                    onClick={() => handleDelete(goal.id)}
-                  >
-                    Delete
-                  </DropdownItem>
+        {goals.map((goal) => {
+          const dynamicProgress = calculateProgressFromHabits(goal);
+          return (
+            <div
+              key={goal.id}
+              className="flex flex-col space-y-2 rounded-lg border p-4"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  {goal.icon}
+                  <h3 className="font-medium">{goal.name}</h3>
                 </div>
-              </Dropdown>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500">
-                  Target: {goal.target}
-                </span>
-                {goal.daysLeft > 0 && (
-                  <span className="text-sm text-gray-500">
-                    • {goal.daysLeft} days left
-                  </span>
-                )}
+                <Dropdown
+                  trigger={
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  }
+                >
+                  <div className="py-1">
+                    <DropdownItem onClick={() => setEditingGoal(goal)}>
+                      Edit
+                    </DropdownItem>
+                    <DropdownItem
+                      className="text-red-600"
+                      onClick={() => handleDelete(goal.id)}
+                    >
+                      Delete
+                    </DropdownItem>
+                  </div>
+                </Dropdown>
               </div>
-              {getStatusBadge(goal.status)}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-500">
+                    Target: {goal.target}
+                  </span>
+                  {goal.daysLeft > 0 && (
+                    <span className="text-sm text-gray-500">
+                      • {goal.daysLeft} days left
+                    </span>
+                  )}
+                </div>
+                {getStatusBadge(goal.status)}
+              </div>
+              <Progress value={dynamicProgress} />
             </div>
-            <Progress value={goal.progress} />
-          </div>
-        ))}
+          );
+        })}
       </div>
       <Modal
         isOpen={editingGoal !== null}
@@ -1946,7 +1967,7 @@ export default function HabitTracker() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <GoalsList goals={goals} setGoals={setGoals} />
+                <GoalsList habits={habits} goals={goals} setGoals={setGoals} />
               </CardContent>
             </Card>
           </div>
