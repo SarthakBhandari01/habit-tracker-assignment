@@ -1,6 +1,5 @@
 "use client";
 import type React from "react";
-import { v4 as uuidv4 } from "uuid";
 import { useState, useRef, useEffect } from "react";
 import {
   Bar,
@@ -33,6 +32,10 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
+function generateId() {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
 // Types
 type Habit = {
   id: string;
@@ -52,7 +55,7 @@ type Goal = {
   target: number;
   progress: number; // e.g., 3 (out of 5 books)
   daysLeft: number;
-  status: "on-track" | "at-risk" | "behind";
+  status: "on-track" | "at-risk" | "behind" | "completed";
   linkedHabitIds?: string[]; // habit IDs contributing to this goal
   unit?: string; // e.g., "books", "kg", etc.
 };
@@ -106,56 +109,34 @@ const initialGoals: Goal[] = [
     id: "1",
     name: "Drink 8 glasses of water daily for 30 days",
     icon: <Droplets className="h-5 w-5 text-blue-500" />,
-    target: 30,
-    progress: 70,
+    target: 240, // 8 glasses × 30 days
+    progress: 168, // e.g. user drank 168 glasses so far
     daysLeft: 9,
     status: "on-track",
     linkedHabitIds: ["1"],
-    unit: "days",
+    unit: "glasses",
   },
   {
     id: "2",
     name: "Sleep 8 hours every night for 2 weeks",
     icon: <Moon className="h-5 w-5 text-indigo-500" />,
-    target: 14,
-    progress: 85,
+    target: 112, // 8 hours × 14 days
+    progress: 95, // hours slept so far
     daysLeft: 2,
     status: "on-track",
     linkedHabitIds: ["2"],
-    unit: "days",
+    unit: "hours",
   },
   {
     id: "3",
-    name: "Reduce screen time to 2 hours daily",
+    name: "Reduce screen time to 2 hours daily for a month",
     icon: <Smartphone className="h-5 w-5 text-rose-500" />,
-    target: 30, // Assuming a month-long goal
-    progress: 40,
+    target: 60, // Target is 2 hours × 30 days (here, lower is better)
+    progress: 70, // Actually consumed so far (could be reduced or capped)
     daysLeft: 0,
     status: "at-risk",
     linkedHabitIds: ["3"],
-    unit: "days",
-  },
-  {
-    id: "4",
-    name: "Exercise 30 minutes daily for 21 days",
-    icon: <Dumbbell className="h-5 w-5 text-green-500" />,
-    target: 21,
-    progress: 25,
-    daysLeft: 16,
-    status: "behind",
-    linkedHabitIds: ["4"],
-    unit: "days",
-  },
-  {
-    id: "5",
-    name: "Read 20 minutes daily for a month",
-    icon: <Book className="h-5 w-5 text-amber-500" />,
-    target: 30,
-    progress: 60,
-    daysLeft: 12,
-    status: "on-track",
-    linkedHabitIds: [], // optional if not linked
-    unit: "days",
+    unit: "hours",
   },
 ];
 
@@ -176,33 +157,6 @@ const statsData = [
   { date: "Week 4", sleep: 7.8, water: 8.0, screen: 2.2 },
   { date: "Week 5", sleep: 7.9, water: 7.8, screen: 2.0 },
   { date: "Week 6", sleep: 8.2, water: 8.0, screen: 1.8 },
-];
-
-// Calendar data
-const completedDates = [
-  new Date(2024, 4, 1),
-  new Date(2024, 4, 2),
-  new Date(2024, 4, 3),
-  new Date(2024, 4, 5),
-  new Date(2024, 4, 6),
-  new Date(2024, 4, 8),
-  new Date(2024, 4, 9),
-  new Date(2024, 4, 10),
-  new Date(2024, 4, 11),
-  new Date(2024, 4, 12),
-  new Date(2024, 4, 13),
-  new Date(2024, 4, 14),
-  new Date(2024, 4, 15),
-  new Date(2024, 4, 16),
-  new Date(2024, 4, 17),
-  new Date(2024, 4, 18),
-  new Date(2024, 4, 19),
-];
-
-const partialDates = [
-  new Date(2024, 4, 4),
-  new Date(2024, 4, 7),
-  new Date(2024, 4, 20),
 ];
 
 // Custom Tailwind Components
@@ -721,175 +675,6 @@ function Modal({
   );
 }
 
-function Calendar({
-  value,
-  onChange,
-}: {
-  value: Date;
-  onChange: (date: Date) => void;
-}) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-
-  const getDaysInMonth = (year: number, month: number) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
-
-  const getFirstDayOfMonth = (year: number, month: number) => {
-    return new Date(year, month, 1).getDay();
-  };
-
-  const year = currentMonth.getFullYear();
-  const month = currentMonth.getMonth();
-  const daysInMonth = getDaysInMonth(year, month);
-  const firstDayOfMonth = getFirstDayOfMonth(year, month);
-
-  const days = [];
-  for (let i = 0; i < firstDayOfMonth; i++) {
-    days.push(null);
-  }
-  for (let i = 1; i <= daysInMonth; i++) {
-    days.push(new Date(year, month, i));
-  }
-
-  const isToday = (date: Date) => {
-    const today = new Date();
-    return (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    );
-  };
-
-  const isSelected = (date: Date) => {
-    return (
-      date.getDate() === value.getDate() &&
-      date.getMonth() === value.getMonth() &&
-      date.getFullYear() === value.getFullYear()
-    );
-  };
-
-  const isCompleted = (date: Date) => {
-    return completedDates.some(
-      (d) =>
-        d.getDate() === date.getDate() &&
-        d.getMonth() === date.getMonth() &&
-        d.getFullYear() === date.getFullYear()
-    );
-  };
-
-  const isPartial = (date: Date) => {
-    return partialDates.some(
-      (d) =>
-        d.getDate() === date.getDate() &&
-        d.getMonth() === date.getMonth() &&
-        d.getFullYear() === date.getFullYear()
-    );
-  };
-
-  const prevMonth = () => {
-    setCurrentMonth(new Date(year, month - 1, 1));
-  };
-
-  const nextMonth = () => {
-    setCurrentMonth(new Date(year, month + 1, 1));
-  };
-
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-
-  return (
-    <div className="w-full">
-      <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={prevMonth}
-          className="p-1 rounded-full hover:bg-gray-200"
-        >
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
-        <h2 className="text-lg font-semibold text-gray-900">
-          {monthNames[month]} {year}
-        </h2>
-        <button
-          onClick={nextMonth}
-          className="p-1 rounded-full hover:bg-gray-200"
-        >
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </button>
-      </div>
-      <div className="grid grid-cols-7 gap-1">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div
-            key={day}
-            className="text-center text-sm font-medium text-gray-500 py-2"
-          >
-            {day}
-          </div>
-        ))}
-        {days.map((day, index) => (
-          <div key={index} className="aspect-square">
-            {day ? (
-              <button
-                onClick={() => onChange(day)}
-                className={`w-full h-full flex items-center justify-center rounded-full text-sm ${
-                  isSelected(day)
-                    ? "bg-blue-600 text-white"
-                    : isCompleted(day)
-                    ? "bg-green-500 text-white"
-                    : isPartial(day)
-                    ? "bg-amber-500 text-white"
-                    : isToday(day)
-                    ? "bg-gray-100 text-gray-900"
-                    : "text-gray-900 hover:bg-gray-100"
-                }`}
-              >
-                {day.getDate()}
-              </button>
-            ) : (
-              <div className="w-full h-full"></div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // Components
 function StreakCard({
   title,
@@ -1043,6 +828,18 @@ function NewGoalForm({ setActiveView, habits, onCreate }: Props2) {
     { value: "kg", label: "Kilograms" },
     { value: "hours", label: "Hours" },
     { value: "times", label: "Times" },
+    { value: "minutes", label: "Minutes" },
+    { value: "km", label: "Kilometers" },
+    { value: "miles", label: "Miles" },
+    { value: "pages", label: "Pages" },
+    { value: "calories", label: "Calories" },
+    { value: "steps", label: "Steps" },
+    { value: "sessions", label: "Sessions" },
+    { value: "tasks", label: "Tasks" },
+    { value: "reps", label: "Reps" },
+    { value: "liters", label: "Liters" },
+    { value: "ml", label: "Milliliters" },
+    { value: "chapters", label: "Chapters" },
   ];
 
   const handleCreate = () => {
@@ -1056,7 +853,7 @@ function NewGoalForm({ setActiveView, habits, onCreate }: Props2) {
       if (firstLinkedHabit) goalIcon = firstLinkedHabit.icon;
     }
     const newGoal: Goal = {
-      id: uuidv4(),
+      id: generateId(),
       name,
       icon: goalIcon,
       target: Number(target),
@@ -1359,22 +1156,42 @@ function GoalsList({
         return <Badge className="bg-amber-100 text-amber-800">At Risk</Badge>;
       case "behind":
         return <Badge className="bg-red-100 text-red-800">Behind</Badge>;
+      case "completed":
+        return <Badge className="bg-red-100 text-red-800">Completed</Badge>;
     }
   };
 
-  const calculateProgressFromHabits = (goal: Goal) => {
+  const calculateProgressAndStatus = (goal: Goal) => {
     if (!goal.linkedHabitIds || goal.linkedHabitIds.length === 0) {
-      return goal.progress;
+      const progressPercent = (goal.progress / goal.target) * 100;
+      return {
+        progressValue: goal.progress,
+        progressPercent,
+        status: getStatus(progressPercent),
+      };
     }
+
     const linkedHabits = habits.filter((habit) =>
       goal.linkedHabitIds?.includes(habit.id)
     );
-    if (linkedHabits.length === 0) return 0;
-    const totalPercentage = linkedHabits.reduce((sum, habit) => {
-      const percentage = (habit.current / habit.target) * 100;
-      return sum + Math.min(Math.max(percentage, 0), 100);
-    }, 0);
-    return Math.round(totalPercentage / linkedHabits.length);
+    const totalCurrent = linkedHabits.reduce(
+      (sum, habit) => sum + habit.current,
+      0
+    );
+    const progressValue = Math.min(totalCurrent, goal.target);
+    const progressPercent = (progressValue / goal.target) * 100;
+    return {
+      progressValue,
+      progressPercent,
+      status: getStatus(progressPercent),
+    };
+  };
+
+  const getStatus = (percent: number): Goal["status"] => {
+    if (percent >= 100) return "completed";
+    if (percent >= 75) return "on-track";
+    if (percent >= 40) return "at-risk";
+    return "behind";
   };
 
   function handleDelete(id: string) {
@@ -1392,7 +1209,9 @@ function GoalsList({
     <>
       <div className="space-y-4">
         {goals.map((goal) => {
-          const dynamicProgress = calculateProgressFromHabits(goal);
+          const { progressValue, progressPercent, status } =
+            calculateProgressAndStatus(goal);
+
           return (
             <div
               key={goal.id}
@@ -1424,19 +1243,18 @@ function GoalsList({
                 </Dropdown>
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500">
-                    Target: {goal.target}
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <span>
+                    Progress: {progressValue} / {goal.target} {goal.unit}
                   </span>
                   {goal.daysLeft > 0 && (
-                    <span className="text-sm text-gray-500">
-                      • {goal.daysLeft} days left
-                    </span>
+                    <span>• {goal.daysLeft} days left</span>
                   )}
                 </div>
-                {getStatusBadge(goal.status)}
+                {getStatusBadge(status)}
               </div>
-              <Progress value={dynamicProgress} />
+
+              <Progress value={progressPercent} />
             </div>
           );
         })}
@@ -1507,68 +1325,6 @@ function GoalsList({
   );
 }
 
-function HabitCalendar() {
-  const [date, setDate] = useState<Date>(new Date());
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-center">
-        <Calendar value={date} onChange={setDate} />
-      </div>
-      <div className="flex justify-center gap-4">
-        <div className="flex items-center gap-2">
-          <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
-          <span className="text-sm">All habits completed</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-block w-3 h-3 bg-amber-500 rounded-full"></span>
-          <span className="text-sm">Some habits completed</span>
-        </div>
-      </div>
-      {date && (
-        <Card>
-          <CardContent className="p-4">
-            <h3 className="font-medium mb-2">
-              {date.toLocaleDateString("en-US", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </h3>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span>Water Intake</span>
-                <Badge className="bg-blue-100 text-blue-800">Completed</Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Sleep</span>
-                <Badge className="bg-indigo-100 text-indigo-800">
-                  Completed
-                </Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Screen Time</span>
-                <Badge className="bg-rose-100 text-rose-800">Completed</Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Exercise</span>
-                <Badge variant="outline" className="text-gray-500">
-                  Missed
-                </Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Reading</span>
-                <Badge className="bg-green-100 text-green-800">Completed</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-}
-
 type Props = {
   onCreate: (habit: Habit) => void;
   setActiveView: (view: string) => void;
@@ -1632,7 +1388,7 @@ function NewHabitForm({ onCreate, setActiveView }: Props) {
     if (!habitName || !target) return;
 
     const newHabit: Habit = {
-      id: uuidv4(),
+      id: generateId(),
       name: habitName,
       icon: iconMap[habitType],
       completed: false,
@@ -1860,7 +1616,6 @@ export default function HabitTracker() {
               tabs={[
                 { id: "overview", label: "Overview" },
                 { id: "habits", label: "By Habit" },
-                { id: "calendar", label: "Calendar" },
               ]}
               activeTab={activeTab}
               onChange={setActiveTab}
@@ -1938,19 +1693,6 @@ export default function HabitTracker() {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </TabPanel>
-            <TabPanel id="calendar" activeTab={activeTab}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Habit Calendar</CardTitle>
-                  <CardDescription>
-                    View your habit completion by date
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <HabitCalendar />
                 </CardContent>
               </Card>
             </TabPanel>
