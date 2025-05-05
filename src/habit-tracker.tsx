@@ -1959,7 +1959,7 @@ export default function HabitTracker() {
                 Add Goal
               </Button>
             </div>
-            <Card>
+            <Card className="overflow-visible">
               <CardHeader>
                 <CardTitle>Your Goals</CardTitle>
                 <CardDescription>
