@@ -138,6 +138,17 @@ const initialGoals: Goal[] = [
     linkedHabitIds: ["3"],
     unit: "hours",
   },
+  {
+    id: "5",
+    name: "Read 20 minutes daily for a month",
+    icon: <Book className="h-5 w-5 text-amber-500" />,
+    target: 600, // 20 minutes × 30 days
+    progress: 360,
+    daysLeft: 12,
+    status: "on-track",
+    linkedHabitIds: [],
+    unit: "minutes",
+  },
 ];
 
 const weeklyProgressData = [
