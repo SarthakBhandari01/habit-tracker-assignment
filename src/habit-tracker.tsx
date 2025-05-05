@@ -1017,6 +1017,14 @@ function HabitList({
   function deleteHabit(id: string) {
     setHabits(habits.filter((habit) => habit.id !== id));
   }
+
+  function resetHabit(id: string) {
+    setHabits(
+      habits.map((habit) =>
+        habit.id === id ? { ...habit, current: 0 } : habit
+      )
+    );
+  }
   return (
     <>
       <div className="space-y-4">
@@ -1065,6 +1073,12 @@ function HabitList({
                     onClick={() => deleteHabit(habit.id)}
                   >
                     Delete
+                  </DropdownItem>
+                  <DropdownItem
+                    className="text-blue-600"
+                    onClick={() => resetHabit(habit.id)}
+                  >
+                    Reset Progress
                   </DropdownItem>
                 </div>
               </Dropdown>
