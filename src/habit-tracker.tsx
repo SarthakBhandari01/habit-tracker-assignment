@@ -1031,7 +1031,7 @@ function DailyGoals({ habits }: { habits: Habit[] }) {
   );
 }
 
-function NewGoalForm({ habits, onCreate }: Props2) {
+function NewGoalForm({ setActiveView, habits, onCreate }: Props2) {
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
   const [unit, setUnit] = useState("times");
@@ -1076,6 +1076,9 @@ function NewGoalForm({ habits, onCreate }: Props2) {
     setDaysLeft("");
     setLinkedHabits([]);
     setUnit("times");
+    setTimeout(() => {
+      setActiveView("goals");
+    }, 1500);
   };
 
   const habitOptions = habits.map((habit) => ({
@@ -1568,14 +1571,16 @@ function HabitCalendar() {
 
 type Props = {
   onCreate: (habit: Habit) => void;
+  setActiveView: (view: string) => void;
 };
 
 type Props2 = {
   onCreate: (goal: Goal) => void;
   habits: Habit[];
+  setActiveView: (view: string) => void;
 };
 
-function NewHabitForm({ onCreate }: Props) {
+function NewHabitForm({ onCreate, setActiveView }: Props) {
   const [habitName, setHabitName] = useState("");
   const [habitType, setHabitType] = useState("water");
   const [target, setTarget] = useState("");
@@ -1641,11 +1646,13 @@ function NewHabitForm({ onCreate }: Props) {
     setTimeout(() => {
       setShowSuccess(false);
     }, 3000);
-
     setHabitName("");
     setTarget("");
     setUnit("glasses");
     setHabitType("water");
+    setTimeout(() => {
+      setActiveView("habits");
+    }, 1500);
   }
 
   return (
@@ -1983,7 +1990,10 @@ export default function HabitTracker() {
                 Back to Habits
               </Button>
             </div>
-            <NewHabitForm onCreate={handleOnCreate} />
+            <NewHabitForm
+              setActiveView={setActiveView}
+              onCreate={handleOnCreate}
+            />
           </div>
         );
       case "newGoal":
@@ -1997,7 +2007,11 @@ export default function HabitTracker() {
                 Back to Goals
               </Button>
             </div>
-            <NewGoalForm habits={habits} onCreate={handleCreateGoal} />
+            <NewGoalForm
+              setActiveView={setActiveView}
+              habits={habits}
+              onCreate={handleCreateGoal}
+            />
           </div>
         );
       default:
